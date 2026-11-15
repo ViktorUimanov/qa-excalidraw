@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 
 
-def capture(profile, run_dir):
+def capture(profile, run_dir, surfaces=('home', 'menu', 'preferences', 'library', 'more-tools', 'fonts', 'export')):
     from assay.runner import Browsers, app_running
     from assay.sensors import AXE_JS, AXE_TAGS
 
@@ -14,8 +14,8 @@ def capture(profile, run_dir):
     with app_running(profile, folder) as down:
         if down:
             return [{'case': None, 'reason': f'Review surfaces unavailable: {down}'}]
-        with Browsers(profile) as browsers:
-            for name in ('home', 'menu', 'preferences', 'library', 'more-tools', 'fonts', 'export'):
+        for name in surfaces:
+            with Browsers(profile) as browsers:
                 context, _ = browsers.new_context('files' if name == 'export' else 'desktop')
                 page = context.new_page()
                 page.set_default_timeout(10000)
@@ -44,14 +44,18 @@ def capture(profile, run_dir):
                         page.get_by_test_id('main-menu-trigger').click()
                         page.get_by_role('menuitem', name='Export image...', exact=True).click()
                     page.wait_for_timeout(700)
-                    page.evaluate(AXE_JS)
-                    data = page.evaluate("""async(tags) => {
-                        const r=await axe.run(document,{runOnly:{type:'tag',values:tags},resultTypes:['violations','incomplete']});
-                        return {violations:r.violations,incomplete:r.incomplete};
-                    }""", AXE_TAGS)
-                    (folder/f'{name}.json').write_text(json.dumps(data, indent=2))
-                    (folder/f'{name}-accessibility.txt').write_text(page.locator('body').aria_snapshot())
+                    # Firefox's native accessibility snapshot combined with axe crashes this build.
+                    # Retain full axe node evidence and screenshots; do not activate that extra observer.
+                    if name != 'export':
+                        (folder/f'{name}-accessibility.txt').write_text(page.locator('body').aria_snapshot())
                     page.screenshot(path=str(folder/f'{name}.png'))
+                    page.evaluate(AXE_JS)
+                    encoded = page.evaluate("""async(tags) => {
+                        const r=await axe.run(document,{runOnly:{type:'tag',values:tags},resultTypes:['violations','incomplete']});
+                        return JSON.stringify({violations:r.violations,incomplete:r.incomplete});
+                    }""", AXE_TAGS)
+                    data = json.loads(encoded)
+                    (folder/f'{name}.json').write_text(json.dumps(data, indent=2))
                     summary.append({'surface': name, 'violations': [{'rule': v['id'], 'nodes': len(v['nodes'])}
                                                                    for v in data['violations']],
                                     'manual_review_rules': [v['id'] for v in data['incomplete']]})
