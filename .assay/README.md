@@ -46,4 +46,4 @@ Accessibility assertions fail on real unnamed controls, export labels and ARIA s
 
 One discovered URL does not measure feature coverage. Collaboration, cloud sharing, AI generation, actual mobile devices, the native save picker and many advanced editor combinations remain untested. No model/judge is configured. Security and AI grades are not proof that those domains were assessed.
 
-Axe's incomplete/manual-review results were gathered separately during review; a clean list of automated violations does not certify accessibility. The suite and its assertions are authored by Codex; this is not a demonstration of autonomous discovery of every product behavior.
+Seven explicitly visited UI surfaces also retain complete axe node details, screenshots and incomplete/manual-review results under `review-surfaces/`; a clean list of automated violations does not certify accessibility. The suite and its assertions are authored by Codex; this is not a demonstration of autonomous discovery of every product behavior.

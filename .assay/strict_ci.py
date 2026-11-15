@@ -64,6 +64,8 @@ def main():
     code = cmd_run(args)
     analysis = json.loads((run_dir/'analysis.json').read_text())
     errors = completeness_errors(run_dir, [c.id for c in cases], profile.probes, int(profile.gate.get("min_cases", 1)))
+    from capture_review import capture
+    errors += capture(profile, run_dir)
     exports = subprocess.run([sys.executable, str(root/'validate_exports.py'), str(run_dir)],
                              capture_output=True, text=True)
     print(exports.stdout, end='')
