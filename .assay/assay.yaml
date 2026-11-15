@@ -1,0 +1,38 @@
+# Native Excalidraw source is unchanged. Fresh browser context per journey.
+name: qa-excalidraw
+title: Excalidraw — real application QA benchmark
+base_url: http://127.0.0.1:5189
+app:
+  start:
+    cmd: ../node_modules/.bin/vite preview --host 127.0.0.1 --port 5189 --strictPort
+    cwd: ../excalidraw-app
+  ready: {url: http://127.0.0.1:5189/, timeout_s: 60}
+env:
+  BROWSER: none
+browser:
+  viewport: desktop
+  timeout_ms: 12000
+  settle: fixed
+  settle_ms: 600
+  screenshots: steps
+  locale: en-US
+viewports:
+  desktop: {width: 1366, height: 900, browser: chromium}
+  files: {width: 1366, height: 900, browser: firefox}
+  mobile: {width: 390, height: 844, touch: true, browser: chromium}
+probes:
+  elements:
+    js: "(JSON.parse(localStorage.getItem('excalidraw') || '[]')).filter(e => !e.isDeleted).map(e => ({id:e.id, type:e.type, x:e.x, y:e.y, width:e.width, height:e.height, angle:e.angle, text:e.text || '', points:e.points || []}))"
+  preferences:
+    js: "JSON.parse(localStorage.getItem('excalidraw-state') || '{}')"
+  theme:
+    js: "localStorage.getItem('excalidraw-theme')"
+scan:
+  routes: ['/']
+  viewports: [desktop, mobile]
+  max_pages: 2
+judge: {backend: none}
+gate:
+  fail_on_case_fail: true
+  max_new: {blocker: 0, critical: 0}
+  max_inconclusive: 0.2
