@@ -1,7 +1,5 @@
-name: Assay
+name: Assay — strict assessment
 on:
-  push:
-    branches: [master]
   pull_request:
   workflow_dispatch:
 
@@ -16,20 +14,29 @@ jobs:
     env:
       BROWSER: none
       HUSKY: '0'
+      ASSAY_WHEEL: https://github.com/RazinAleksandr/assay/raw/0f28e57a0876d8d6e844ea09472290cc1bb92e1d/dist/assay-0.3.0-py3-none-any.whl
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Enable pinned Yarn
-        run: corepack enable
-      - name: Install unchanged app dependencies
-        run: yarn install --frozen-lockfile
-      - name: Build production app
-        run: yarn build:app:docker
-      - uses: RazinAleksandr/assay@v0
-        with:
-          browsers: chromium firefox
-      - name: Verify exported file contents
+      - run: corepack enable
+      - run: yarn install --frozen-lockfile
+      - run: yarn build:app:docker
+      - uses: astral-sh/setup-uv@v6
+      - name: Verify assessment completeness guard
+        run: uvx --from pytest==9.2.0 pytest .assay/tests -q
+      - name: Install released scanner browsers
+        run: uvx --from "$ASSAY_WHEEL" assay browsers --with-deps chromium firefox
+      - name: Run and publish strict assessment
+        env:
+          ASSAY_HOST_URL: http://46.225.104.43:8080
+          GITHUB_TOKEN: ${{ github.token }}
+        run: uv run --no-project --with "$ASSAY_WHEEL" python .assay/strict_ci.py
+      - name: Retain all evidence, including failing findings
         if: always()
-        run: python3 .assay/validate_exports.py .assay/runs
+        uses: actions/upload-artifact@v4
+        with:
+          name: assay-strict-evidence
+          path: .assay/runs
+          retention-days: 14
