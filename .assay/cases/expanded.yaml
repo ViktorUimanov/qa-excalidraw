@@ -1,0 +1,449 @@
+cases:
+- id: compat.reload_console
+  title: Chromium reload has no console compatibility errors
+  dimension: reliability
+  severity: major
+  tags:
+  - compatibility
+  - known-bug
+  viewport: desktop
+  setup: &id002
+  - goto: /
+  - wait_for: &id001
+      css: canvas.excalidraw__canvas.interactive
+  - wait: 700
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - reload: true
+  - wait_for: *id001
+  - wait: 500
+  must:
+  - &id003
+    no_errors:
+      allow:
+      - '^Permissions policy violation: unload is not allowed in this document\.$'
+  - &id004
+    no_failed_requests: true
+  - no_errors: true
+  - allowed_changes:
+    - elements
+    - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
+- id: accessibility.library
+  title: Library controls have accessible names and usable contrast
+  dimension: accessibility
+  severity: major
+  tags: []
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - click:
+      role: button
+      name: Library
+      exact: true
+  - wait: 700
+  must:
+  - *id003
+  - *id004
+  - a11y:
+      max_impact: serious
+  - allowed_changes:
+    - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
+- id: accessibility.preferences
+  title: Preferences menu has valid accessibility semantics
+  dimension: accessibility
+  severity: major
+  tags: []
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - click:
+      testid: main-menu-trigger
+  - click:
+      role: menuitem
+      name: Preferences
+      exact: true
+  - wait: 500
+  must:
+  - *id003
+  - *id004
+  - a11y:
+      max_impact: serious
+  - allowed_changes:
+    - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
+- id: accessibility.export
+  title: Export dialog has named controls and matching labels
+  dimension: accessibility
+  severity: major
+  tags: []
+  viewport: files
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - &id005
+    click:
+      role: button
+      name: Rectangle
+      exact: true
+  - &id006
+    draw:
+      within: *id001
+      points:
+      - - 0.38
+        - 0.38
+      - - 0.6
+        - 0.58
+  - &id007
+    wait: 500
+  - click:
+      testid: main-menu-trigger
+  - click:
+      role: menuitem
+      name: Export image...
+      exact: true
+  must:
+  - *id003
+  - *id004
+  - a11y:
+      max_impact: serious
+  - allowed_changes:
+    - elements
+    - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
+- id: accessibility.fonts
+  title: Text font controls have valid accessibility semantics
+  dimension: accessibility
+  severity: major
+  tags: []
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - click:
+      role: button
+      name: Text
+      exact: true
+  - click:
+      target: *id001
+      position:
+      - 500
+      - 350
+  - type: Font control audit
+  - press: Escape
+  - wait: 500
+  must:
+  - *id003
+  - *id004
+  - a11y:
+      max_impact: serious
+  - allowed_changes:
+    - elements
+    - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
+- id: drawing.erase_undo
+  title: Erase a shape and restore the original with undo
+  dimension: functional
+  severity: major
+  tags: []
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - *id005
+  - *id006
+  - *id007
+  - eval: sessionStorage.setItem('__erasedShape',JSON.stringify(JSON.parse(localStorage.getItem('excalidraw')||'[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle})=>({id,type,x,y,width,height,angle}))))
+  - click:
+      role: button
+      name: Eraser
+      exact: true
+  - draw:
+      within: *id001
+      points:
+      - - 0.32
+        - 0.47
+      - - 0.66
+        - 0.47
+  - wait: 700
+  - expect:
+      invariant: JSON.parse(localStorage.getItem('excalidraw')||'[]').filter(e=>!e.isDeleted).length === 0
+  - click:
+      role: button
+      name: Undo
+      exact: true
+  - wait: 700
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: rectangle
+  - allowed_changes:
+    - elements
+    - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
+  - invariant: JSON.stringify(JSON.parse(localStorage.getItem('excalidraw')||'[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle})=>({id,type,x,y,width,height,angle})))===sessionStorage.getItem('__erasedShape')
+- id: drawing.group_ungroup
+  title: Group and ungroup two shapes without losing their geometry
+  dimension: functional
+  severity: major
+  tags: []
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - *id005
+  - *id006
+  - *id007
+  - click:
+      role: button
+      name: Ellipse
+      exact: true
+  - draw:
+      within: *id001
+      points:
+      - - 0.65
+        - 0.4
+      - - 0.8
+        - 0.55
+  - wait: 500
+  - eval: sessionStorage.setItem('__groupedShapes',JSON.stringify(JSON.parse(localStorage.getItem('excalidraw')||'[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle})=>({id,type,x,y,width,height,angle}))))
+  - press: ControlOrMeta+a
+  - press: ControlOrMeta+g
+  - wait: 700
+  - expect:
+      invariant: JSON.parse(localStorage.getItem('excalidraw')||'[]').filter(e=>!e.isDeleted).length === 2 && JSON.parse(localStorage.getItem('excalidraw')||'[]').filter(e=>!e.isDeleted).every(e=>e.groupIds.length===1)
+  - press: ControlOrMeta+Shift+g
+  - wait: 700
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 2
+  - invariant: JSON.parse(localStorage.getItem('excalidraw')||'[]').filter(e=>!e.isDeleted).every(e=>e.groupIds.length===0)
+  - allowed_changes:
+    - elements
+    - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
+  - invariant: JSON.stringify(JSON.parse(localStorage.getItem('excalidraw')||'[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle})=>({id,type,x,y,width,height,angle})))===sessionStorage.getItem('__groupedShapes')
+- id: drawing.unicode
+  title: Save and reload multiline Unicode text
+  dimension: functional
+  severity: major
+  tags: []
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - click:
+      role: button
+      name: Text
+      exact: true
+  - click:
+      target: *id001
+      position:
+      - 500
+      - 350
+  - type: 'Café • Привет • 你好
+
+      Second line'
+  - press: Escape
+  - wait: 500
+  - reload: true
+  - wait_for: *id001
+  - wait: 700
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: text
+          text: 'Café • Привет • 你好
+
+            Second line'
+  - allowed_changes:
+    - elements
+    - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
+- id: images.persist_render
+  title: Import an image, reload it and verify both stored bytes and visible pixels
+  dimension: functional
+  severity: major
+  tags: []
+  viewport: files
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+    files:
+      len: 0
+  steps:
+  - click:
+      role: button
+      name: More tools
+      exact: true
+  - click:
+      role: menuitem
+      name: Insert image
+      exact: false
+  - upload:
+      css: input[type=file]
+      file: fixtures/green-marker.png
+  - wait: 1000
+  - click:
+      target: *id001
+      position:
+      - 600
+      - 400
+  - wait: 1000
+  - reload: true
+  - wait_for: *id001
+  - wait: 1000
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: image
+      files:
+        len: 1
+  - invariant: () => {const c=document.querySelector('canvas.static');const p=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let
+      n=0;for(let i=0;i<p.length;i+=4)if(p[i]<70&&p[i+1]>140&&p[i+1]<220&&p[i+2]<110&&p[i+3]>200)n++;return n>1000;}
+  - allowed_changes:
+    - elements
+    - preferences
+    - files
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true

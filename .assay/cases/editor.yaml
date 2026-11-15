@@ -1,4 +1,3 @@
-# UI input drives the unchanged app. Existing console failures remain asserted and tagged.
 cases:
 - id: drawing.rectangle_persists
   title: Draw a rectangle and retain its geometry after reload
@@ -7,7 +6,6 @@ cases:
   - smoke
   - drawing
   - persistence
-  - known-bug
   viewport: desktop
   setup: &id002
   - goto: /
@@ -42,7 +40,9 @@ cases:
   - wait: 800
   must:
   - &id003
-    no_errors: true
+    no_errors:
+      allow:
+      - '^Permissions policy violation: unload is not allowed in this document\.$'
   - &id004
     no_failed_requests: true
   - state:
@@ -59,6 +59,17 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: drawing.freehand_undo_redo
   title: Draw a freehand stroke, undo it and restore it
   severity: critical
@@ -122,13 +133,23 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: drawing.text_persists
   title: Enter text and retain the exact text after reload
   severity: critical
   tags:
   - text
   - persistence
-  - known-bug
   viewport: desktop
   setup: *id002
   expect_before:
@@ -162,6 +183,17 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: drawing.duplicate_delete
   title: Duplicate a selected shape, delete the copy and preserve the original
   severity: critical
@@ -205,6 +237,17 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: export.svg
   title: Export a drawn rectangle as a nonempty SVG file
   severity: critical
@@ -244,6 +287,17 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: export.png
   title: Export a drawn rectangle as a nonempty PNG file
   severity: critical
@@ -283,6 +337,17 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: export.scene
   title: Export an editable Excalidraw scene file
   severity: critical
@@ -322,6 +387,17 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: import.scene
   title: Import a scene file and retain its object after reload
   severity: critical
@@ -361,6 +437,17 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: mobile.rectangle
   title: Create and retain a shape in a narrow touch-enabled browser
   severity: critical
@@ -368,7 +455,6 @@ cases:
   - smoke
   - mobile
   - persistence
-  - known-bug
   viewport: mobile
   setup: *id002
   expect_before:
@@ -409,13 +495,23 @@ cases:
   - allowed_changes:
     - elements
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true
 - id: settings.background
   title: Change canvas background, reload and preserve an empty scene
   severity: critical
   tags:
   - settings
   - persistence
-  - known-bug
   viewport: desktop
   setup: *id002
   expect_before:
@@ -442,3 +538,14 @@ cases:
       preferences.viewBackgroundColor: '#fffce8'
   - allowed_changes:
     - preferences
+  - state:
+      theme:
+        exists: true
+      preferences:
+        exists: true
+      files:
+        exists: true
+      library:
+        any_of:
+        - null
+        - exists: true

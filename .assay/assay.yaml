@@ -1,4 +1,4 @@
-# Native Excalidraw source is unchanged. Fresh browser context per journey.
+# Unchanged application; expanded, isolated browser checks.
 name: qa-excalidraw
 title: Excalidraw — real application QA benchmark
 base_url: http://127.0.0.1:5189
@@ -6,7 +6,9 @@ app:
   start:
     cmd: ../node_modules/.bin/vite preview --host 127.0.0.1 --port 5189 --strictPort
     cwd: ../excalidraw-app
-  ready: {url: http://127.0.0.1:5189/, timeout_s: 60}
+  ready:
+    url: http://127.0.0.1:5189/
+    timeout_s: 60
 env:
   BROWSER: none
 browser:
@@ -17,22 +19,52 @@ browser:
   screenshots: steps
   locale: en-US
 viewports:
-  desktop: {width: 1366, height: 900, browser: chromium}
-  files: {width: 1366, height: 900, browser: firefox}
-  mobile: {width: 390, height: 844, touch: true, browser: chromium}
+  desktop:
+    width: 1366
+    height: 900
+    browser: chromium
+  files:
+    width: 1366
+    height: 900
+    browser: firefox
+  mobile:
+    width: 390
+    height: 844
+    touch: true
+    browser: chromium
 probes:
   elements:
-    js: "(JSON.parse(localStorage.getItem('excalidraw') || '[]')).filter(e => !e.isDeleted).map(e => ({id:e.id, type:e.type, x:e.x, y:e.y, width:e.width, height:e.height, angle:e.angle, text:e.text || '', points:e.points || []}))"
+    js: (JSON.parse(localStorage.getItem('excalidraw') || '[]')).filter(e => !e.isDeleted).map(e => ({id:e.id, type:e.type,
+      x:e.x, y:e.y, width:e.width, height:e.height, angle:e.angle, fileId:e.fileId || null, groupIds:e.groupIds || [], text:e.text
+      || '', points:e.points || []}))
   preferences:
-    js: "JSON.parse(localStorage.getItem('excalidraw-state') || '{}')"
+    js: JSON.parse(localStorage.getItem('excalidraw-state') || '{}')
   theme:
-    js: "localStorage.getItem('excalidraw-theme')"
+    js: localStorage.getItem('excalidraw-theme')
+  files:
+    js: async () => { if (!(await indexedDB.databases()).some(d=>d.name==='files-db')) return []; return await new Promise((resolve,reject)=>{const
+      opening=indexedDB.open('files-db');opening.onerror=()=>reject(opening.error);opening.onsuccess=()=>{const db=opening.result;const
+      tx=db.transaction('files-store','readonly');const store=tx.objectStore('files-store');const request=store.getAll();request.onerror=()=>{db.close();reject(request.error)};request.onsuccess=()=>{const
+      result=request.result;db.close();resolve(result ?? [])};};}); }
+  library:
+    js: async () => { if (!(await indexedDB.databases()).some(d=>d.name==='excalidraw-library-db')) return null; return await
+      new Promise((resolve,reject)=>{const opening=indexedDB.open('excalidraw-library-db');opening.onerror=()=>reject(opening.error);opening.onsuccess=()=>{const
+      db=opening.result;const tx=db.transaction('excalidraw-library-store','readonly');const store=tx.objectStore('excalidraw-library-store');const
+      request=store.get('libraryData');request.onerror=()=>{db.close();reject(request.error)};request.onsuccess=()=>{const
+      result=request.result;db.close();resolve(result ?? null)};};}); }
 scan:
-  routes: ['/']
-  viewports: [desktop, mobile]
+  routes:
+  - /
+  viewports:
+  - desktop
+  - mobile
   max_pages: 2
-judge: {backend: none}
+judge:
+  backend: none
 gate:
   fail_on_case_fail: true
-  max_new: {blocker: 0, critical: 0}
+  max_new:
+    blocker: 0
+    critical: 0
   max_inconclusive: 0.2
+  min_cases: 19

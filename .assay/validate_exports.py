@@ -2,6 +2,38 @@
 from pathlib import Path
 import json, struct, sys, zlib
 import xml.etree.ElementTree as ET
+
+
+def assert_visible_png(data, compressed, width, height):
+    """Decode our canvas's 8-bit PNG and reject an empty/uniform export."""
+    depth, color, compression, filtering, interlace = data[24:29]
+    assert depth == 8 and color in (2, 6) and (compression, filtering, interlace) == (0, 0, 0), "Unsupported PNG encoding"
+    channels = 4 if color == 6 else 3
+    stride = width * channels
+    raw = zlib.decompress(compressed)
+    assert len(raw) == height * (stride + 1), "Wrong decoded PNG size"
+    previous = bytearray(stride)
+    pixels = []
+    for y in range(height):
+        offset = y * (stride + 1)
+        kind = raw[offset]
+        assert 0 <= kind <= 4, "Invalid PNG row filter"
+        row = bytearray(raw[offset + 1:offset + 1 + stride])
+        for x in range(stride):
+            left = row[x - channels] if x >= channels else 0
+            up = previous[x]
+            upper_left = previous[x - channels] if x >= channels else 0
+            prediction = left + up - upper_left
+            distances = [abs(prediction - v) for v in (left, up, upper_left)]
+            paeth = (left, up, upper_left)[distances.index(min(distances))]
+            row[x] = (row[x] + (0, left, up, (left + up) // 2, paeth)[kind]) & 255
+        pixels.extend(tuple(row[x:x + channels]) for x in range(0, stride, channels))
+        previous = row
+    background = pixels[0]
+    ink = sum(max(abs(a - b) for a, b in zip(pixel, background)) > 20 for pixel in pixels)
+    assert ink > 50, "Export contains no visible drawing (uniform/blank image)"
+
+
 root = Path(sys.argv[1]) if len(sys.argv)>1 else Path(__file__).parent/'runs'
 found = {name:[p for p in root.rglob(name) if p.is_file()] for name in ('export.svg','export.png','scene.excalidraw')}
 for name, paths in found.items():
@@ -24,6 +56,7 @@ for name, paths in found.items():
                 if kind==b'IEND':ended=True
                 pos+=12+size
             assert ended and len(zlib.decompress(compressed))>100, f'Invalid PNG data: {p}'
+            assert_visible_png(data, compressed, width, height)
         else:
             scene=json.loads(data)
             assert scene.get('type')=='excalidraw', f'Invalid scene type: {p}'
