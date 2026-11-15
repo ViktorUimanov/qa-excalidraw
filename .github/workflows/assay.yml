@@ -1,0 +1,35 @@
+name: Assay
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  assay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    env:
+      BROWSER: none
+      HUSKY: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Enable pinned Yarn
+        run: corepack enable
+      - name: Install unchanged app dependencies
+        run: yarn install --frozen-lockfile
+      - name: Build production app
+        run: yarn build:app:docker
+      - uses: RazinAleksandr/assay@v0
+        with:
+          browsers: chromium firefox
+      - name: Verify exported file contents
+        if: always()
+        run: python3 .assay/validate_exports.py .assay/runs

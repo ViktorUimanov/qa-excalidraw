@@ -1,0 +1,444 @@
+# UI input drives the unchanged app. Existing console failures remain asserted and tagged.
+cases:
+- id: drawing.rectangle_persists
+  title: Draw a rectangle and retain its geometry after reload
+  severity: critical
+  tags:
+  - smoke
+  - drawing
+  - persistence
+  - known-bug
+  viewport: desktop
+  setup: &id002
+  - goto: /
+  - wait_for: &id001
+      css: canvas.excalidraw__canvas.interactive
+  - wait: 700
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - &id005
+    click:
+      role: button
+      name: Rectangle
+      exact: true
+  - &id006
+    draw:
+      within: *id001
+      points:
+      - - 0.38
+        - 0.38
+      - - 0.6
+        - 0.58
+  - &id007
+    wait: 800
+  - expect:
+      invariant: JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).length === 1 && JSON.parse(localStorage.getItem('excalidraw')
+        || '[]').filter(e=>!e.isDeleted)[0].width > 100
+  - eval: sessionStorage.setItem('__assayExpectedScene', JSON.stringify(JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points}))));
+  - reload: true
+  - wait_for: *id001
+  - wait: 800
+  must:
+  - &id003
+    no_errors: true
+  - &id004
+    no_failed_requests: true
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: rectangle
+          width:
+            gt: 100
+          height:
+            gt: 100
+  - invariant: JSON.stringify(JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points})))
+      === sessionStorage.getItem('__assayExpectedScene')
+  - allowed_changes:
+    - elements
+    - preferences
+- id: drawing.freehand_undo_redo
+  title: Draw a freehand stroke, undo it and restore it
+  severity: critical
+  tags:
+  - drawing
+  - history
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - click:
+      role: button
+      name: Draw
+      exact: true
+  - draw:
+      within: *id001
+      points:
+      - - 0.38
+        - 0.4
+      - - 0.42
+        - 0.35
+      - - 0.48
+        - 0.45
+      - - 0.54
+        - 0.36
+      - - 0.6
+        - 0.44
+  - wait: 800
+  - expect:
+      invariant: JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).length === 1 && JSON.parse(localStorage.getItem('excalidraw')
+        || '[]').filter(e=>!e.isDeleted)[0].points.length > 3
+  - eval: sessionStorage.setItem('__assayExpectedStroke', JSON.stringify(JSON.parse(localStorage.getItem('excalidraw') ||
+      '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points}))));
+  - click:
+      role: button
+      name: Undo
+      exact: true
+  - wait: 800
+  - expect:
+      invariant: JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).length === 0
+  - click:
+      role: button
+      name: Redo
+      exact: true
+  - wait: 800
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: freedraw
+          points:
+            len:
+              gt: 3
+  - invariant: JSON.stringify(JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points})))
+      === sessionStorage.getItem('__assayExpectedStroke')
+  - allowed_changes:
+    - elements
+    - preferences
+- id: drawing.text_persists
+  title: Enter text and retain the exact text after reload
+  severity: critical
+  tags:
+  - text
+  - persistence
+  - known-bug
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - click:
+      role: button
+      name: Text
+      exact: true
+  - click:
+      target: *id001
+      position:
+      - 500
+      - 350
+  - type: Assay checks real saved drawings.
+  - press: Escape
+  - wait: 800
+  - reload: true
+  - wait_for: *id001
+  - wait: 800
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: text
+          text: Assay checks real saved drawings.
+  - allowed_changes:
+    - elements
+    - preferences
+- id: drawing.duplicate_delete
+  title: Duplicate a selected shape, delete the copy and preserve the original
+  severity: critical
+  tags:
+  - editing
+  - deletion
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - *id005
+  - *id006
+  - *id007
+  - eval: window.__assayOriginalId = (JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points})))[0].id;
+      window.__assayOriginalScene = JSON.stringify(JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points})));
+  - click:
+      role: button
+      name: Duplicate
+      exact: true
+  - wait: 800
+  - expect:
+      invariant: JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).length === 2
+  - click:
+      role: button
+      name: Delete
+      exact: true
+  - wait: 800
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: rectangle
+  - invariant: JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted)[0].id === window.__assayOriginalId
+  - invariant: JSON.stringify(JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points})))
+      === window.__assayOriginalScene
+  - allowed_changes:
+    - elements
+    - preferences
+- id: export.svg
+  title: Export a drawn rectangle as a nonempty SVG file
+  severity: critical
+  tags:
+  - export
+  - svg
+  viewport: files
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - *id005
+  - *id006
+  - *id007
+  - click:
+      testid: main-menu-trigger
+  - click:
+      role: menuitem
+      name: Export image...
+      exact: true
+  - download:
+      role: button
+      name: Export to SVG
+      exact: true
+      save_as: export.svg
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: rectangle
+  - invariant: '{vars.download_size} > 100'
+  - invariant: '''{vars.download_name}''.endsWith(''.svg'')'
+  - allowed_changes:
+    - elements
+    - preferences
+- id: export.png
+  title: Export a drawn rectangle as a nonempty PNG file
+  severity: critical
+  tags:
+  - export
+  - png
+  viewport: files
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - *id005
+  - *id006
+  - *id007
+  - click:
+      testid: main-menu-trigger
+  - click:
+      role: menuitem
+      name: Export image...
+      exact: true
+  - download:
+      role: button
+      name: Export to PNG
+      exact: true
+      save_as: export.png
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: rectangle
+  - invariant: '{vars.download_size} > 100'
+  - invariant: '''{vars.download_name}''.endsWith(''.png'')'
+  - allowed_changes:
+    - elements
+    - preferences
+- id: export.scene
+  title: Export an editable Excalidraw scene file
+  severity: critical
+  tags:
+  - export
+  - scene
+  viewport: files
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - *id005
+  - *id006
+  - *id007
+  - click:
+      testid: main-menu-trigger
+  - click:
+      role: menuitem
+      name: Save to...
+      exact: true
+  - download:
+      role: button
+      name: Save to file
+      exact: true
+      save_as: scene.excalidraw
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: rectangle
+  - invariant: '{vars.download_size} > 100'
+  - invariant: '''{vars.download_name}''.endsWith(''.excalidraw'')'
+  - allowed_changes:
+    - elements
+    - preferences
+- id: import.scene
+  title: Import a scene file and retain its object after reload
+  severity: critical
+  tags:
+  - import
+  - persistence
+  viewport: files
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - click:
+      testid: main-menu-trigger
+  - click:
+      role: menuitem
+      name: Open
+      exact: true
+  - upload:
+      css: input[type=file]
+      file: fixtures/import-scene.excalidraw
+  - wait: 1000
+  - reload: true
+  - wait_for: *id001
+  - wait: 800
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          id: assay-import-rectangle
+          type: rectangle
+          width: 250
+          height: 150
+  - allowed_changes:
+    - elements
+    - preferences
+- id: mobile.rectangle
+  title: Create and retain a shape in a narrow touch-enabled browser
+  severity: critical
+  tags:
+  - smoke
+  - mobile
+  - persistence
+  - known-bug
+  viewport: mobile
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - click:
+      role: button
+      name: Rectangle
+      exact: true
+  - draw:
+      within: *id001
+      points:
+      - - 0.35
+        - 0.35
+      - - 0.75
+        - 0.55
+  - wait: 800
+  - eval: sessionStorage.setItem('__assayExpectedScene', JSON.stringify(JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points}))));
+  - reload: true
+  - wait_for: *id001
+  - wait: 800
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 1
+        contains:
+          type: rectangle
+          width:
+            gt: 100
+          height:
+            gt: 100
+  - no_layout_issues: true
+  - invariant: JSON.stringify(JSON.parse(localStorage.getItem('excalidraw') || '[]').filter(e=>!e.isDeleted).map(({id,type,x,y,width,height,angle,text,points})=>({id,type,x,y,width,height,angle,text,points})))
+      === sessionStorage.getItem('__assayExpectedScene')
+  - allowed_changes:
+    - elements
+    - preferences
+- id: settings.background
+  title: Change canvas background, reload and preserve an empty scene
+  severity: critical
+  tags:
+  - settings
+  - persistence
+  - known-bug
+  viewport: desktop
+  setup: *id002
+  expect_before:
+    elements:
+      len: 0
+  steps:
+  - click:
+      testid: main-menu-trigger
+  - click:
+      role: button
+      name: '#fffce8'
+      exact: true
+  - press: Escape
+  - wait: 800
+  - reload: true
+  - wait_for: *id001
+  - wait: 800
+  must:
+  - *id003
+  - *id004
+  - state:
+      elements:
+        len: 0
+      preferences.viewBackgroundColor: '#fffce8'
+  - allowed_changes:
+    - preferences
